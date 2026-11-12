@@ -2,41 +2,40 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>Muzip – פסנתר ילדים</title>
 <style>
 :root{--bg:#ffffff;--surface-2:#f6f5f2;--border:rgba(0,0,0,.15);--border-stronger:rgba(0,0,0,.45);--text-primary:#1f1f24;--text-secondary:#5f5e5a;--text-accent:#185FA5}
 @media (prefers-color-scheme:dark){:root{--bg:#1c1c1e;--surface-2:#2a2a2d;--border:rgba(255,255,255,.18);--border-stronger:rgba(255,255,255,.5);--text-primary:#f2f2f2;--text-secondary:#a8a7a2;--text-accent:#7db7ff}}
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{margin:0;padding:12px;background:var(--bg);color:var(--text-primary);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans Hebrew",Arial,sans-serif}
-.stage{margin:0 auto;position:relative}
-.app{width:400px;position:absolute;top:0;left:0;transform-origin:0 0}
-h1{font-size:16px;font-weight:500;margin:0 0 10px;text-align:center}
+html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--text-primary);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans Hebrew",Arial,sans-serif}
+.app{position:fixed;top:0;left:0;width:100%;height:100%;height:100dvh;display:flex;
+ padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))}
 button{font-family:inherit;color:inherit}
-.mz{display:flex;gap:8px;direction:ltr;align-items:stretch}
-.keys{width:88px;display:flex;flex-direction:column;gap:4px;height:404px;flex:none}
-.key{flex:1;border:none;border-radius:8px;font-size:16px;font-weight:500;cursor:pointer;touch-action:manipulation;padding:0;transition:transform .08s;writing-mode:vertical-rl;text-orientation:mixed;display:flex;align-items:center;justify-content:center;line-height:1;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.mz{flex:1;min-width:0;min-height:0;display:flex;gap:8px;direction:ltr;align-items:stretch}
+.keys{width:clamp(76px,24vw,160px);height:100%;display:flex;flex-direction:column;gap:4px;flex:none}
+.key{flex:1;min-height:0;border:none;border-radius:8px;font-size:clamp(16px,min(5vw,3.2vh),30px);font-weight:500;cursor:pointer;touch-action:manipulation;padding:0;transition:transform .08s;writing-mode:vertical-rl;text-orientation:mixed;display:flex;align-items:center;justify-content:center;line-height:1;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .key:active,.key.on{transform:scale(.96);filter:brightness(.93)}
-.pane{flex:1;min-width:0;height:404px;position:relative;overflow:hidden;background:var(--surface-2);border:.5px solid var(--border);border-radius:12px}
+.pane{flex:1;min-width:0;height:100%;position:relative;overflow:hidden;background:var(--surface-2);border:.5px solid var(--border);border-radius:12px}
 .fx{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
 .inner{position:absolute;top:0;left:0;transform-origin:0 0;padding:8px;direction:rtl;display:flex;flex-direction:column;overflow:hidden}
 .bar{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex:none}
-.bar .t{flex:1;font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .t{flex:1;font-size:15px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ib,.list button{background:var(--bg);border:.5px solid var(--border-stronger);border-radius:8px;cursor:pointer}
-.ib{width:40px;height:40px;padding:0;display:flex;align-items:center;justify-content:center;font-size:26px;line-height:1}
-.list{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px;overflow-y:auto}
+.ib{width:44px;height:44px;padding:0;display:flex;align-items:center;justify-content:center;font-size:28px;line-height:1}
+.list{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;overflow-y:auto}
 .list[hidden],#staff[hidden],.msg[hidden]{display:none!important}
-.list button{text-align:right;font-size:13px;padding:8px 10px}
+.list button{text-align:right;font-size:14px;padding:10px 12px}
 .list .g{grid-column:1/-1;font-size:12px;color:var(--text-secondary);margin:4px 2px 0}
 #staff{flex:1;min-height:0;overflow-y:auto}
 .msg{font-size:13px;color:var(--text-secondary);min-height:20px;margin-top:4px;flex:none}
 </style>
 </head>
 <body>
-<div class="stage" id="stage">
 <div class="app" id="app">
-<h1>Muzip – פסנתר ילדים</h1>
 <div class="mz">
   <div class="keys" id="keys"></div>
   <div class="pane" id="pane">
@@ -52,7 +51,6 @@ button{font-family:inherit;color:inherit}
       <div class="msg" id="msg">לחצו על המפתח כדי לבחור שיר</div>
     </div>
   </div>
-</div>
 </div>
 </div>
 <script>
@@ -83,23 +81,17 @@ var S=[
  m:[8,6,6, 7,5,5, 4,5,6,7, 8,8,8, 8,6,6, 7,5,5, 4,6,8,8, 4, 5,5,5,5, 5,6,7, 6,6,6,6, 6,7,8, 8,6,6, 7,5,5, 4,6,8,8, 4],
  d:[1,1,2, 1,1,2, 1,1,1,1, 1,1,2, 1,1,2, 1,1,2, 1,1,1,1, 4, 1,1,1,1, 1,1,2, 1,1,1,1, 1,1,2, 1,1,2, 1,1,2, 1,1,1,1, 4]}
 ];
-var ctx=null,cur=null,idx=0,tok=0,hl=-1,shownRow=0,scrollUntil=0,sc=1;
+var ctx=null,cur=null,idx=0,tok=0,hl=-1,shownRow=0,scrollUntil=0;
 var pane=document.getElementById('pane'),inner=document.getElementById('inner'),stf=document.getElementById('staff'),lst=document.getElementById('list'),cv=document.getElementById('fx'),cx=cv.getContext('2d');
 var dpr=window.devicePixelRatio||1;
-function fit(){var pw=pane.clientWidth,ph=pane.clientHeight;if(!pw)return;
+/* the right pane is rotated 90deg clockwise and always fills the whole pane */
+function fit(){var pw=pane.clientWidth,ph=pane.clientHeight;if(!pw||!ph)return;
 inner.style.width=ph+'px';inner.style.height=pw+'px';
 inner.style.transform='translateX('+pw+'px) rotate(90deg)';
-cv.width=Math.round(pw*dpr*sc);cv.height=Math.round(ph*dpr*sc);}
-/* enlarge the whole app up to 2x (smaller on narrow screens) */
-var MAXSCALE=2;
-function scaleApp(){var app=document.getElementById('app'),st=document.getElementById('stage');
- sc=Math.max(0.5,Math.min(MAXSCALE,(document.documentElement.clientWidth-24)/400));
- app.style.transform='scale('+sc+')';
- st.style.width=(400*sc)+'px';st.style.height=(app.offsetHeight*sc)+'px';
- fit();}
-scaleApp();
-window.addEventListener('resize',scaleApp);
-if(window.ResizeObserver)new ResizeObserver(fit).observe(pane);
+cv.width=Math.round(pw*dpr);cv.height=Math.round(ph*dpr);}
+function onResize(){fit();if(cur&&!stf.hidden){shownRow=-1;draw();}}
+fit();window.addEventListener('resize',onResize);
+if(window.ResizeObserver)new ResizeObserver(onResize).observe(pane);
 function ensureCtx(){if(!ctx){var A=window.AudioContext||window.webkitAudioContext;ctx=new A();}
 if(ctx.state==='suspended')ctx.resume();}
 function snd(d){ensureCtx();
@@ -127,7 +119,7 @@ function loop(ts){if(!fxOn)return;
  var dt=Math.min(2,(ts-fxPrev)/16.7||1);fxPrev=ts;
  var el=ts-fxStart;
  if(el<3200&&ts-fxLast>380){burst();fxLast=ts;}
- cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,cv.width,cv.height);cx.setTransform(dpr*sc,0,0,dpr*sc,0,0);cx.lineCap='round';cx.lineWidth=2.2;
+ cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,cv.width,cv.height);cx.setTransform(dpr,0,0,dpr,0,0);cx.lineCap='round';cx.lineWidth=2.4;
  for(var i=parts.length-1;i>=0;i--){var p=parts[i];p.px=p.x;p.py=p.y;p.vx*=Math.pow(0.985,dt);p.vy=p.vy*Math.pow(0.985,dt)+0.045*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=0.011*dt;
   if(p.life<=0){parts.splice(i,1);continue;}
   cx.strokeStyle='hsla('+p.hue+',90%,58%,'+p.life+')';cx.beginPath();cx.moveTo(p.px,p.py);cx.lineTo(p.x,p.y);cx.stroke();}
@@ -144,13 +136,17 @@ function press(d){tok++;hl=-1;snd(d);flash(d);
 if(cur){if(idx<cur.m.length&&cur.m[idx]===d){idx++;if(idx>=cur.m.length){msg('כל הכבוד! סיימתם את השיר');setTimeout(celebrate,350);}else{msg('');}}}
 draw();}
 function msg(t){document.getElementById('msg').textContent=t;}
-var P=14;
+var ZS=1.25; /* note size multiplier */
+var lastP=14,lastW=400;
 function draw(){var el=stf;if(!cur){el.innerHTML='';return;}
-var m=cur.m,W=400,rows=Math.ceil(m.length/P),H=rows*100,s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="display:block;direction:ltr" role="img" aria-label="תווי השיר">';
+var cw=el.clientWidth;if(!cw){return;}
+var m=cur.m,W=Math.max(300,Math.round(cw/ZS)),P=Math.max(8,Math.floor((W-62)/25)),step=(W-62)/P;
+lastP=P;lastW=W;
+var rows=Math.ceil(m.length/P),H=rows*100,s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="display:block;direction:ltr" role="img" aria-label="תווי השיר">';
 for(var r=0;r<rows;r++){var y0=r*100,yb=y0+70;
 for(var l=0;l<5;l++){var y=yb-l*10;s+='<line x1="2" x2="'+(W-2)+'" y1="'+y+'" y2="'+y+'" stroke="var(--border-stronger)" stroke-width="1"/>';}
 s+='<text x="6" y="'+(y0+78)+'" font-size="52" fill="var(--text-primary)" font-family="\'Noto Music\',\'Apple Symbols\',\'Segoe UI Symbol\',serif">&#119070;</text>';}
-m.forEach(function(d,i){var r=Math.floor(i/P),c=i%P,x=54+c*25,y0=r*100,y=y0+80-d*5;
+m.forEach(function(d,i){var r=Math.floor(i/P),c=i%P,x=54+c*step,y0=r*100,y=y0+80-d*5;
 if(d===0)s+='<line x1="'+(x-10)+'" x2="'+(x+10)+'" y1="'+(y0+80)+'" y2="'+(y0+80)+'" stroke="var(--border-stronger)" stroke-width="1"/>';
 var nxt=(i===idx||i===hl),done=i<idx;
 s+='<g opacity="'+(done?0.4:1)+'"><ellipse cx="'+x+'" cy="'+y+'" rx="6.5" ry="5" fill="'+K[d][2]+'" stroke="'+(nxt?'var(--text-accent)':'#6b6b78')+'" stroke-width="'+(nxt?3:1.2)+'"/>';
@@ -163,14 +159,14 @@ var act=hl>=0?hl:idx,row=Math.min(rows-1,Math.floor(act/P)),now=Date.now();
 if(row!==shownRow||now<scrollUntil){
  if(row!==shownRow)scrollUntil=now+600;
  shownRow=row;
- var rowPx=el.clientWidth*100/W,target=Math.min(row*rowPx,Math.max(0,el.scrollHeight-el.clientHeight));
+ var rowPx=cw*100/W,target=Math.min(row*rowPx,Math.max(0,el.scrollHeight-el.clientHeight));
  if(Math.abs(el.scrollTop-target)>2)el.scrollTo({top:target,behavior:'smooth'});
 }}
 function setList(open){lst.hidden=!open;stf.hidden=open;document.getElementById('msg').hidden=open;}
 function buildList(){var h='<div class="g">שירי חנוכה</div>',o='';S.forEach(function(x,i){var b='<button data-i="'+i+'">'+x.n+'</button>';if(x.h)h+=b;else o+=b;});
 if(o)h+='<div class="g">שירי ילדים נוספים</div>'+o;lst.innerHTML=h;setList(false);}
 buildList();
-document.getElementById('clef').addEventListener('click',function(){setList(lst.hidden);});
+document.getElementById('clef').addEventListener('click',function(){setList(lst.hidden);if(lst.hidden&&cur){shownRow=-1;draw();}});
 lst.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;
 stopFx();cur=S[+b.dataset.i];idx=0;hl=-1;tok++;shownRow=0;scrollUntil=0;document.getElementById('title').textContent=cur.n;setList(false);stf.scrollTop=0;msg('הקישו על הצלילים לפי הסימון, או לחצו על נגן');draw();});
 document.getElementById('play').addEventListener('click',function(){if(!cur){setList(true);return;}
@@ -180,4 +176,3 @@ var d=cur.m[i],w=(cur.d?cur.d[i]*520:430)+((cur.g&&cur.g[i+1])||0)*520;hl=i;snd(
 </script>
 </body>
 </html>
-
