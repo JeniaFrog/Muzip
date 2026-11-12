@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Muzip – פסנתר ילדים</title>
+<style>
+:root{--bg:#ffffff;--surface-2:#f6f5f2;--border:rgba(0,0,0,.15);--border-stronger:rgba(0,0,0,.45);--text-primary:#1f1f24;--text-secondary:#5f5e5a;--text-accent:#185FA5}
+@media (prefers-color-scheme:dark){:root{--bg:#1c1c1e;--surface-2:#2a2a2d;--border:rgba(255,255,255,.18);--border-stronger:rgba(255,255,255,.5);--text-primary:#f2f2f2;--text-secondary:#a8a7a2;--text-accent:#7db7ff}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;padding:12px;background:var(--bg);color:var(--text-primary);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans Hebrew",Arial,sans-serif}
+.app{max-width:480px;margin:0 auto}
+h1{font-size:16px;font-weight:500;margin:0 0 10px;text-align:center}
+button{font-family:inherit;color:inherit}
+.mz{display:flex;gap:8px;direction:ltr;align-items:stretch}
+.keys{width:88px;display:flex;flex-direction:column;gap:4px;height:404px;flex:none}
+.key{flex:1;border:none;border-radius:8px;font-size:16px;font-weight:500;cursor:pointer;touch-action:manipulation;padding:0;transition:transform .08s;writing-mode:vertical-rl;text-orientation:mixed;display:flex;align-items:center;justify-content:center;line-height:1;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.key:active,.key.on{transform:scale(.96);filter:brightness(.93)}
+.pane{flex:1;min-width:0;height:404px;position:relative;overflow:hidden;background:var(--surface-2);border:.5px solid var(--border);border-radius:12px}
+.fx{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.inner{position:absolute;top:0;left:0;transform-origin:0 0;padding:8px;direction:rtl;display:flex;flex-direction:column;overflow:hidden}
+.bar{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex:none}
+.bar .t{flex:1;font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ib,.list button{background:var(--bg);border:.5px solid var(--border-stronger);border-radius:8px;cursor:pointer}
+.ib{width:40px;height:40px;padding:0;display:flex;align-items:center;justify-content:center;font-size:26px;line-height:1}
+.list{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px;overflow-y:auto}
+.list[hidden],#staff[hidden],.msg[hidden]{display:none!important}
+.list button{text-align:right;font-size:13px;padding:8px 10px}
+.list .g{grid-column:1/-1;font-size:12px;color:var(--text-secondary);margin:4px 2px 0}
+#staff{flex:1;min-height:0;overflow-y:auto}
+.msg{font-size:13px;color:var(--text-secondary);min-height:20px;margin-top:4px;flex:none}
+</style>
+</head>
+<body>
+<div class="app">
+<h1>Muzip – פסנתר ילדים</h1>
+<div class="mz">
+  <div class="keys" id="keys"></div>
+  <div class="pane" id="pane">
+    <canvas class="fx" id="fx"></canvas>
+    <div class="inner" id="inner">
+      <div class="bar">
+        <button class="ib" id="clef" aria-label="בחירת שיר" style="font-family:'Noto Music','Apple Symbols','Segoe UI Symbol',serif">&#119070;</button>
+        <div class="t" id="title">בחרו שיר</div>
+        <button class="ib" id="play" aria-label="נגן"><svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" fill="currentColor"/></svg></button>
+      </div>
+      <div class="list" id="list"></div>
+      <div id="staff"></div>
+      <div class="msg" id="msg">לחצו על המפתח כדי לבחור שיר</div>
+    </div>
+  </div>
+</div>
+</div>
+<script>
+var K=[['Do',261.63,'#F9C5D1'],['Re',293.66,'#FAD7B0'],['Mi',329.63,'#FCEFA8'],['Fa',349.23,'#C8E6B2'],['Sol',392.00,'#B5E3DA'],['La',440.00,'#B9D7F5'],['Si',493.88,'#D3C6F2'],['Dô',523.25,'#EBC6EA'],['Rê',587.33,'#FFD6C0'],['Mî',659.25,'#D4F0C0']];
+function comp(hex){var r=parseInt(hex.substr(1,2),16)/255,g=parseInt(hex.substr(3,2),16)/255,b=parseInt(hex.substr(5,2),16)/255;
+var mx=Math.max(r,g,b),mn=Math.min(r,g,b),h=0,d=mx-mn;
+if(d){if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;if(h<0)h+=360;}
+return 'hsl('+Math.round((h+180)%360)+',65%,26%)';}
+K.forEach(function(k){k.push(comp(k[2]));});
+var gp=[];for(var z=0;z<26;z++)gp.push(0);gp[4]=2;gp[9]=2;gp[13]=6;gp[18]=3;gp[21]=6;
+var gs=[];for(var y=0;y<26;y++)gs.push(0);gs[13]=2;
+/* m = notes (0=Do ... 9=Mî), d = duration in beats, g = rest (beats) before note i */
+var S=[
+{h:1,n:'סביבון סוב סוב',m:[5,5,6,7,7,6, 9,9,8,7,6,5,7,7,6, 5,5,6,7,7,8, 9,9,9,2,5,5,5],
+ d:[.5,.5,1,.5,.5,1, .5,.5,.25,.25,.25,.25,.5,.5,1, .5,.5,1,.5,.5,1, .5,.5,.5,.5,.5,.5,1]},
+{h:1,n:'חנוכה חנוכה חג יפה כל כך',
+ m:[4,2,4, 4,2,4, 2,4,7,6, 5, 3,1,3, 3,1,3, 1,3,6,5, 4, 4,2,4, 4,2,4, 2,4,7,6, 5, 6,6,6, 6,6,6, 6,4,5,6, 7],
+ d:[1,1,2, 1,1,2, 1,1,1,1, 4, 1,1,2, 1,1,2, 1,1,1,1, 4, 1,1,2, 1,1,2, 1,1,1,1, 4, 1,1,2, 1,1,2, 1,1,1,1, 4]},
+{h:1,n:'באנו חושך לגרש',
+ m:[1,0,1,0, 1, 1,0,1,0, 1, 2,1,0, 2,1,0,2, 1, 2,1,0, 2,1,0,2, 1],
+ d:[1.5,.5,1,1, 2, 1.5,.5,1,1, 2, .5,.5,1, .5,.5,2,1, 1, .5,.5,1, .5,.5,2,1, 1],
+ g:gp},
+{h:0,n:'השפן הקטן',
+ m:[7,4,4, 5,2,2,2, 4,3,2,1, 2,4, 7,4,4, 5,2,2, 4,3,2,1, 2,0,0],
+ d:[1,1,2, 1,1,1.5,.5, 1,1,1,1, 1,1, 1,1,2, 1,1,2, 1,1,1,1, 1,2,1],
+ g:gs},
+{h:0,n:'יונתן הקטן',
+ m:[8,6,6, 7,5,5, 4,5,6,7, 8,8,8, 8,6,6, 7,5,5, 4,6,8,8, 4, 5,5,5,5, 5,6,7, 6,6,6,6, 6,7,8, 8,6,6, 7,5,5, 4,6,8,8, 4],
+ d:[1,1,2, 1,1,2, 1,1,1,1, 1,1,2, 1,1,2, 1,1,2, 1,1,1,1, 4, 1,1,1,1, 1,1,2, 1,1,1,1, 1,1,2, 1,1,2, 1,1,2, 1,1,1,1, 4]}
+];
+var ctx=null,cur=null,idx=0,tok=0,hl=-1,shownRow=0,scrollUntil=0;
+var pane=document.getElementById('pane'),inner=document.getElementById('inner'),stf=document.getElementById('staff'),lst=document.getElementById('list'),cv=document.getElementById('fx'),cx=cv.getContext('2d');
+var dpr=window.devicePixelRatio||1;
+function fit(){var pw=pane.clientWidth,ph=pane.clientHeight;if(!pw)return;
+inner.style.width=ph+'px';inner.style.height=pw+'px';
+inner.style.transform='translateX('+pw+'px) rotate(90deg)';
+cv.width=Math.round(pw*dpr);cv.height=Math.round(ph*dpr);}
+fit();window.addEventListener('resize',fit);
+if(window.ResizeObserver)new ResizeObserver(fit).observe(pane);
+function ensureCtx(){if(!ctx){var A=window.AudioContext||window.webkitAudioContext;ctx=new A();}
+if(ctx.state==='suspended')ctx.resume();}
+function snd(d){ensureCtx();
+var o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime;
+o.type='triangle';o.frequency.value=K[d][1];
+g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(0.35,t+0.015);g.gain.exponentialRampToValueAtTime(0.001,t+0.7);
+o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+0.75);}
+var clapBuf=null;
+function applause(){ensureCtx();
+if(!clapBuf){var n=Math.floor(ctx.sampleRate*0.06);clapBuf=ctx.createBuffer(1,n,ctx.sampleRate);var a=clapBuf.getChannelData(0);for(var i=0;i<n;i++)a[i]=(Math.random()*2-1)*Math.pow(1-i/n,2.5);}
+var t0=ctx.currentTime+0.1,dur=3.2;
+for(var i=0;i<110;i++){
+ var u=Math.random(),tt=t0+dur*(u<0.5?Math.pow(u*2,0.8)*0.5:0.5+Math.pow((u-0.5)*2,1.5)*0.5);
+ var src=ctx.createBufferSource();src.buffer=clapBuf;src.playbackRate.value=0.8+Math.random()*0.6;
+ var f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=1200+Math.random()*2600;f.Q.value=0.7;
+ var g=ctx.createGain();var env=1-Math.abs((tt-t0)/dur-0.35)*0.9;
+ g.gain.value=Math.max(0.08,0.32*Math.random()*env);
+ src.connect(f);f.connect(g);g.connect(ctx.destination);src.start(tt);}
+}
+var parts=[],fxOn=false,fxStart=0,fxLast=0,fxPrev=0;
+function burst(){var W=pane.clientWidth,H=pane.clientHeight,x=W*(0.15+Math.random()*0.7),y=H*(0.12+Math.random()*0.45),hue=Math.floor(Math.random()*360),n=38;
+for(var i=0;i<n;i++){var a=Math.PI*2*i/n+Math.random()*0.2,sp=1.4+Math.random()*2.6;parts.push({x:x,y:y,px:x,py:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,hue:hue+Math.random()*30});}}
+function stopFx(){fxOn=false;parts=[];cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,cv.width,cv.height);}
+function loop(ts){if(!fxOn)return;
+ var dt=Math.min(2,(ts-fxPrev)/16.7||1);fxPrev=ts;
+ var el=ts-fxStart;
+ if(el<3200&&ts-fxLast>380){burst();fxLast=ts;}
+ cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,cv.width,cv.height);cx.setTransform(dpr,0,0,dpr,0,0);cx.lineCap='round';cx.lineWidth=2.2;
+ for(var i=parts.length-1;i>=0;i--){var p=parts[i];p.px=p.x;p.py=p.y;p.vx*=Math.pow(0.985,dt);p.vy=p.vy*Math.pow(0.985,dt)+0.045*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=0.011*dt;
+  if(p.life<=0){parts.splice(i,1);continue;}
+  cx.strokeStyle='hsla('+p.hue+',90%,58%,'+p.life+')';cx.beginPath();cx.moveTo(p.px,p.py);cx.lineTo(p.x,p.y);cx.stroke();}
+ if(el>3200&&!parts.length){stopFx();return;}
+ requestAnimationFrame(loop);}
+function fireworks(){if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+ stopFx();fxOn=true;fxStart=performance.now();fxLast=0;fxPrev=fxStart;requestAnimationFrame(loop);}
+function celebrate(){fireworks();applause();}
+var kb=document.getElementById('keys');
+for(var q=0;q<K.length;q++){(function(d){var k=K[d],b=document.createElement('button');b.className='key';b.textContent=k[0];b.style.background=k[2];b.style.color=k[3];b.setAttribute('aria-label',k[0]);b.dataset.d=d;
+b.addEventListener('pointerdown',function(e){e.preventDefault();press(d);});kb.appendChild(b);})(q);}
+function flash(d){var b=kb.querySelector('[data-d="'+d+'"]');b.classList.add('on');setTimeout(function(){b.classList.remove('on');},180);}
+function press(d){tok++;hl=-1;snd(d);flash(d);
+if(cur){if(idx<cur.m.length&&cur.m[idx]===d){idx++;if(idx>=cur.m.length){msg('כל הכבוד! סיימתם את השיר');setTimeout(celebrate,350);}else{msg('');}}}
+draw();}
+function msg(t){document.getElementById('msg').textContent=t;}
+var P=14;
+function draw(){var el=stf;if(!cur){el.innerHTML='';return;}
+var m=cur.m,W=400,rows=Math.ceil(m.length/P),H=rows*100,s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="display:block;direction:ltr" role="img" aria-label="תווי השיר">';
+for(var r=0;r<rows;r++){var y0=r*100,yb=y0+70;
+for(var l=0;l<5;l++){var y=yb-l*10;s+='<line x1="2" x2="'+(W-2)+'" y1="'+y+'" y2="'+y+'" stroke="var(--border-stronger)" stroke-width="1"/>';}
+s+='<text x="6" y="'+(y0+78)+'" font-size="52" fill="var(--text-primary)" font-family="\'Noto Music\',\'Apple Symbols\',\'Segoe UI Symbol\',serif">&#119070;</text>';}
+m.forEach(function(d,i){var r=Math.floor(i/P),c=i%P,x=54+c*25,y0=r*100,y=y0+80-d*5;
+if(d===0)s+='<line x1="'+(x-10)+'" x2="'+(x+10)+'" y1="'+(y0+80)+'" y2="'+(y0+80)+'" stroke="var(--border-stronger)" stroke-width="1"/>';
+var nxt=(i===idx||i===hl),done=i<idx;
+s+='<g opacity="'+(done?0.4:1)+'"><ellipse cx="'+x+'" cy="'+y+'" rx="6.5" ry="5" fill="'+K[d][2]+'" stroke="'+(nxt?'var(--text-accent)':'#6b6b78')+'" stroke-width="'+(nxt?3:1.2)+'"/>';
+s+='<rect x="'+(x-12)+'" y="'+(y0+86)+'" width="24" height="14" rx="4" fill="'+K[d][2]+'"/>';
+s+='<text x="'+x+'" y="'+(y0+96.5)+'" font-size="10.5" font-weight="500" text-anchor="middle" fill="'+K[d][3]+'">'+K[d][0]+'</text></g>';});
+var st=el.scrollTop;
+el.innerHTML=s+'</svg>';
+el.scrollTop=st;
+var act=hl>=0?hl:idx,row=Math.min(rows-1,Math.floor(act/P)),now=Date.now();
+if(row!==shownRow||now<scrollUntil){
+ if(row!==shownRow)scrollUntil=now+600;
+ shownRow=row;
+ var rowPx=el.clientWidth*100/W,target=Math.min(row*rowPx,Math.max(0,el.scrollHeight-el.clientHeight));
+ if(Math.abs(el.scrollTop-target)>2)el.scrollTo({top:target,behavior:'smooth'});
+}}
+function setList(open){lst.hidden=!open;stf.hidden=open;document.getElementById('msg').hidden=open;}
+function buildList(){var h='<div class="g">שירי חנוכה</div>',o='';S.forEach(function(x,i){var b='<button data-i="'+i+'">'+x.n+'</button>';if(x.h)h+=b;else o+=b;});
+if(o)h+='<div class="g">שירי ילדים נוספים</div>'+o;lst.innerHTML=h;setList(false);}
+buildList();
+document.getElementById('clef').addEventListener('click',function(){setList(lst.hidden);});
+lst.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;
+stopFx();cur=S[+b.dataset.i];idx=0;hl=-1;tok++;shownRow=0;scrollUntil=0;document.getElementById('title').textContent=cur.n;setList(false);stf.scrollTop=0;msg('הקישו על הצלילים לפי הסימון, או לחצו על נגן');draw();});
+document.getElementById('play').addEventListener('click',function(){if(!cur){setList(true);return;}
+stopFx();setList(false);var my=++tok;idx=0;msg('');var i=0;
+(function step(){if(my!==tok)return;if(i>=cur.m.length){hl=-1;idx=0;draw();return;}
+var d=cur.m[i],w=(cur.d?cur.d[i]*520:430)+((cur.g&&cur.g[i+1])||0)*520;hl=i;snd(d);flash(d);draw();i++;setTimeout(step,w);})();});
+</script>
+</body>
+</html>
