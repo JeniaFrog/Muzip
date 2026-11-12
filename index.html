@@ -10,7 +10,8 @@
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;padding:12px;background:var(--bg);color:var(--text-primary);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans Hebrew",Arial,sans-serif}
-.app{max-width:480px;margin:0 auto}
+.stage{margin:0 auto;position:relative}
+.app{width:400px;position:absolute;top:0;left:0;transform-origin:0 0}
 h1{font-size:16px;font-weight:500;margin:0 0 10px;text-align:center}
 button{font-family:inherit;color:inherit}
 .mz{display:flex;gap:8px;direction:ltr;align-items:stretch}
@@ -33,7 +34,8 @@ button{font-family:inherit;color:inherit}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="stage" id="stage">
+<div class="app" id="app">
 <h1>Muzip – פסנתר ילדים</h1>
 <div class="mz">
   <div class="keys" id="keys"></div>
@@ -50,6 +52,7 @@ button{font-family:inherit;color:inherit}
       <div class="msg" id="msg">לחצו על המפתח כדי לבחור שיר</div>
     </div>
   </div>
+</div>
 </div>
 </div>
 <script>
@@ -80,14 +83,22 @@ var S=[
  m:[8,6,6, 7,5,5, 4,5,6,7, 8,8,8, 8,6,6, 7,5,5, 4,6,8,8, 4, 5,5,5,5, 5,6,7, 6,6,6,6, 6,7,8, 8,6,6, 7,5,5, 4,6,8,8, 4],
  d:[1,1,2, 1,1,2, 1,1,1,1, 1,1,2, 1,1,2, 1,1,2, 1,1,1,1, 4, 1,1,1,1, 1,1,2, 1,1,1,1, 1,1,2, 1,1,2, 1,1,2, 1,1,1,1, 4]}
 ];
-var ctx=null,cur=null,idx=0,tok=0,hl=-1,shownRow=0,scrollUntil=0;
+var ctx=null,cur=null,idx=0,tok=0,hl=-1,shownRow=0,scrollUntil=0,sc=1;
 var pane=document.getElementById('pane'),inner=document.getElementById('inner'),stf=document.getElementById('staff'),lst=document.getElementById('list'),cv=document.getElementById('fx'),cx=cv.getContext('2d');
 var dpr=window.devicePixelRatio||1;
 function fit(){var pw=pane.clientWidth,ph=pane.clientHeight;if(!pw)return;
 inner.style.width=ph+'px';inner.style.height=pw+'px';
 inner.style.transform='translateX('+pw+'px) rotate(90deg)';
-cv.width=Math.round(pw*dpr);cv.height=Math.round(ph*dpr);}
-fit();window.addEventListener('resize',fit);
+cv.width=Math.round(pw*dpr*sc);cv.height=Math.round(ph*dpr*sc);}
+/* enlarge the whole app up to 2x (smaller on narrow screens) */
+var MAXSCALE=2;
+function scaleApp(){var app=document.getElementById('app'),st=document.getElementById('stage');
+ sc=Math.max(0.5,Math.min(MAXSCALE,(document.documentElement.clientWidth-24)/400));
+ app.style.transform='scale('+sc+')';
+ st.style.width=(400*sc)+'px';st.style.height=(app.offsetHeight*sc)+'px';
+ fit();}
+scaleApp();
+window.addEventListener('resize',scaleApp);
 if(window.ResizeObserver)new ResizeObserver(fit).observe(pane);
 function ensureCtx(){if(!ctx){var A=window.AudioContext||window.webkitAudioContext;ctx=new A();}
 if(ctx.state==='suspended')ctx.resume();}
@@ -116,7 +127,7 @@ function loop(ts){if(!fxOn)return;
  var dt=Math.min(2,(ts-fxPrev)/16.7||1);fxPrev=ts;
  var el=ts-fxStart;
  if(el<3200&&ts-fxLast>380){burst();fxLast=ts;}
- cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,cv.width,cv.height);cx.setTransform(dpr,0,0,dpr,0,0);cx.lineCap='round';cx.lineWidth=2.2;
+ cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,cv.width,cv.height);cx.setTransform(dpr*sc,0,0,dpr*sc,0,0);cx.lineCap='round';cx.lineWidth=2.2;
  for(var i=parts.length-1;i>=0;i--){var p=parts[i];p.px=p.x;p.py=p.y;p.vx*=Math.pow(0.985,dt);p.vy=p.vy*Math.pow(0.985,dt)+0.045*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=0.011*dt;
   if(p.life<=0){parts.splice(i,1);continue;}
   cx.strokeStyle='hsla('+p.hue+',90%,58%,'+p.life+')';cx.beginPath();cx.moveTo(p.px,p.py);cx.lineTo(p.x,p.y);cx.stroke();}
